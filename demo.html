@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SRI'S MODEL SCHOOL - Optimized Question Paper Replication</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0.75in; /* Slightly larger margin for a cleaner look */
+        }
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 11pt; /* Slightly smaller font for better density */
+            line-height: 1.3; /* Reduced line height */
+            margin: 0;
+            padding: 0;
+        }
+        .page {
+            page-break-after: always;
+            position: relative;
+        }
+        .page:last-child {
+            page-break-after: avoid;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 5px; /* Reduced margin */
+            font-weight: bold;
+        }
+        .header h1 {
+            font-size: 14pt;
+            margin: 0;
+        }
+        .header h2 {
+            font-size: 11pt;
+            margin: 0;
+            font-weight: normal;
+        }
+        .info-line {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 10pt;
+            border-bottom: 1px solid black;
+            padding-bottom: 3px; /* Reduced padding */
+            margin-bottom: 10px;
+        }
+        .info-line span {
+            white-space: nowrap;
+        }
+        .info-line .name-blank {
+            display: inline-block;
+            width: 150px;
+            border-bottom: 1px solid black;
+            margin-right: 10px;
+        }
+        .section-title {
+            font-size: 12pt; /* Reduced font size */
+            font-weight: bold;
+            margin-top: 10px; /* Reduced margin */
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #ccc; /* Added subtle separator */
+            padding-bottom: 2px;
+        }
+        .marks {
+            font-size: 10pt;
+            font-weight: normal;
+            white-space: nowrap;
+        }
+        .sub-question-list {
+            list-style-type: decimal;
+            padding-left: 20px;
+            margin: 0;
+        }
+        .sub-question-list li {
+            margin-bottom: 3px; /* Reduced space between list items */
+        }
+        .blank {
+            border-bottom: 1px solid black;
+            display: inline-block;
+            height: 1em;
+            vertical-align: middle;
+        }
+        .box {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 1px solid black;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        /* --- Page 1 Specific Styles (English) --- */
+        .question-answer {
+            margin-bottom: 10px;
+        }
+        .question-answer p {
+            margin: 0;
+            padding: 0;
+        }
+        .match-table {
+            width: 50%;
+            margin-top: 5px;
+            margin-left: 20px;
+            font-size: 11pt;
+        }
+        .match-table td {
+            padding: 1px 0; /* Reduced padding */
+        }
+        .match-table .col-a {
+            width: 50%;
+        }
+        .match-table .col-b {
+            width: 50%;
+            text-align: right;
+        }
+        .tick-list {
+            list-style-type: decimal;
+            padding-left: 20px;
+            margin: 0;
+        }
+        .tick-list li {
+            margin-bottom: 3px;
+        }
+
+        /* --- Page 2 Specific Styles (Maths/General) --- */
+        .number-grid {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        .number-grid td {
+            border: 1px solid black;
+            width: 10%;
+            height: 25px; /* Reduced height */
+            text-align: center;
+            vertical-align: middle;
+            padding: 0;
+        }
+        .drawing-section {
+            margin-top: 10px;
+        }
+        .drawing-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px; /* Reduced margin */
+        }
+        .drawing-row .q-num {
+            width: 5%;
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        .drawing-item {
+            width: 23.75%;
+            text-align: center;
+            padding: 0 5px;
+        }
+        .drawing-placeholder {
+            height: 40px; /* Reduced size */
+            width: 40px;
+            border: 1px solid #000;
+            border-radius: 50%;
+            margin: 5px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7pt;
+            color: #000;
+            line-height: 1;
+            font-weight: normal;
+            position: relative;
+        }
+        /* Specific drawing styles (retained from previous version for visual fidelity) */
+        .drawing-placeholder.rect { border-radius: 0; }
+        .drawing-placeholder.kite { border-radius: 0; clip-path: polygon(50% 0%, 100% 30%, 100% 70%, 50% 100%, 0% 70%, 0% 30%); }
+        .drawing-placeholder.fish { border-radius: 50%; clip-path: polygon(0% 50%, 80% 50%, 100% 70%, 80% 90%, 0% 90%); }
+        .drawing-placeholder.lollipop { border-radius: 50%; height: 25px; width: 25px; margin-bottom: 0; }
+        .lollipop-stick { height: 15px; width: 1px; background-color: black; margin: 0 auto; }
+        .drawing-placeholder.elephant { border-radius: 0; height: 35px; width: 50px; }
+        .drawing-placeholder.tree { border-radius: 0; height: 35px; width: 35px; }
+        .drawing-placeholder.star { border-radius: 0; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+        .drawing-placeholder.bottle { border-radius: 0; height: 35px; width: 15px; }
+        .drawing-placeholder.candy { border-radius: 0; height: 10px; width: 50px; }
+        .drawing-placeholder.flower { border-radius: 50%; height: 25px; width: 25px; }
+        .drawing-placeholder.umbrella { border-radius: 0; height: 25px; width: 40px; border-bottom: none; }
+        .umbrella-handle { height: 15px; width: 1px; background-color: black; margin: 0 auto; }
+        .drawing-placeholder.ball { border-radius: 50%; height: 35px; width: 35px; }
+        .drawing-placeholder.icecream { border-radius: 0; height: 35px; width: 15px; clip-path: polygon(0% 0%, 100% 0%, 50% 100%); }
+    </style>
+</head>
+<body>
+
+<!-- Page 1: English - Summative Assessment Test - I -->
+<div class="page">
+    <div class="header">
+        <h1>SRI'S MODEL SCHOOL</h1>
+        <h2>SUMMATIVE ASSESSMENT TEST - I</h2>
+    </div>
+    <div class="info-line">
+        <span>NAME: <span class="name-blank"></span></span>
+        <span>CLASS: I</span>
+        <span>SUBJECT: English</span>
+        <span>MARKS: 40</span>
+    </div>
+
+    <div class="section-title">I) Answer the Following Questions <span class="marks">2 x 3 = 6</span></div>
+    <div class="question-answer">
+        <p>Qr: What is Aarvi's father?</p>
+        <p>Ans: <span class="blank" style="width: 95%;"></span></p>
+    </div>
+    <div class="question-answer">
+        <p>Qr: What is Aarvi's mother?</p>
+        <p>Ans: <span class="blank" style="width: 95%;"></span></p>
+    </div>
+
+    <div class="section-title">II) Match the following <span class="marks">5 x 1 = 5</span></div>
+    <table class="match-table">
+        <tr><td class="col-a">1) catch</td><td class="col-b">a. race</td></tr>
+        <tr><td class="col-a">2) place</td><td class="col-b">b. green</td></tr>
+        <tr><td class="col-a">3) eat</td><td class="col-b">c. mat</td></tr>
+        <tr><td class="col-a">4) clean</td><td class="col-b">d. match</td></tr>
+        <tr><td class="col-a">5) bat</td><td class="col-b">e. seat</td></tr>
+    </table>
+
+    <div class="section-title">III) Tick the Correct Option <span class="marks">5 x 1 = 5</span></div>
+    <ol class="tick-list">
+        <li>Put my toys in the shoe rack [ <span class="box"></span> ]</li>
+        <li>Keep my books on the shelf [ <span class="box"></span> ]</li>
+        <li>Keep my pencil in the pencil box [ <span class="box"></span> ]</li>
+        <li>Keep my shoes in the shoe rack [ <span class="box"></span> ]</li>
+        <li>eat fresh fruits [ <span class="box"></span> ]</li>
+    </ol>
+
+    <!-- Page 2: General/Maths - (Based on IMG_9552.JPG) -->
+    <div class="section-title" style="justify-content: space-between; margin-top: 20px;">VI) Write numbers from 101 - 150 <span class="marks">5 x 1 = 5</span></div>
+    <table class="number-grid">
+        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </table>
+
+    <div class="section-title">VII) Circle the Picture that is Same Object <span class="marks">5 x 1 = 5</span></div>
+    <div class="drawing-section">
+        <!-- Row 1 -->
+        <div class="drawing-row">
+            <div class="q-num">1)</div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder umbrella"></div>
+                <div class="umbrella-handle"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder umbrella"></div>
+                <div class="umbrella-handle"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder ball"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder bottle rect"></div>
+            </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="drawing-row">
+            <div class="q-num">2)</div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder ball"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder fish rect"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder candy rect"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder ball"></div>
+            </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="drawing-row">
+            <div class="q-num">3)</div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder flower"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder lollipop"></div>
+                <div class="lollipop-stick"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder flower"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder lollipop"></div>
+                <div class="lollipop-stick"></div>
+            </div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="drawing-row">
+            <div class="q-num">4)</div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder tree rect"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder elephant rect"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder elephant rect"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder kite star"></div>
+            </div>
+        </div>
+
+        <!-- Row 5 -->
+        <div class="drawing-row">
+            <div class="q-num">5)</div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder fish rect"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder fish rect"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder icecream rect"></div>
+            </div>
+            <div class="drawing-item">
+                <div class="drawing-placeholder star"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "ExamGen AI",
+  "description": "Autonomous handwritten exam to professional print-ready paper generator using Gemini Vision and Image Generation.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
