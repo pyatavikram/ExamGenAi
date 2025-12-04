@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase'; // 1. Import Supabase Client
+import { supabase } from './lib/supabase';
 import { FileUpload } from './components/FileUpload';
 import { PaperRenderer } from './components/PaperRenderer';
 import { SchoolConfig, AppState, ExamPaperData } from './types';
 import { geminiService } from './services/gemini';
 import { Auth } from './Auth';
-import { Sparkles, Printer, LayoutTemplate, Loader2, AlertCircle, PenTool, Download, ImagePlus, X, RotateCcw, FileText, LogOut, CloudUpload } from 'lucide-react';
+import { useAuth } from './hooks/useAuth';
+import { useLocalStorage } from './hooks/useLocalStorage';
+import {
+  Sparkles, Printer, LayoutTemplate, Loader2, AlertCircle,
+  PenTool, Download, ImagePlus, X, RotateCcw, LogOut, CloudUpload
+} from 'lucide-react';
 
 const DEFAULT_CONFIG: SchoolConfig = {
     schoolName: "SRI’S MODEL SCHOOL",
@@ -18,68 +23,59 @@ const DEFAULT_CONFIG: SchoolConfig = {
     logoUrl: null
 };
 
-// Local Storage Helper
-const loadState = <T,>(key: string, defaultValue: T): T => {
-    try {
-        const saved = localStorage.getItem(key);
-        return saved ? JSON.parse(saved) : defaultValue;
-    } catch (e) {
-        return defaultValue;
-    }
-};
+// Define the fields config with strict keys
+const CONFIG_FIELDS: { label: string; key: keyof SchoolConfig }[] = [
+    { label: 'School Name', key: 'schoolName' },
+    { label: 'Exam Title', key: 'examName' },
+    { label: 'Class', key: 'className' },
+    { label: 'Subject', key: 'subject' },
+    { label: 'Marks', key: 'marks' },
+    { label: 'Time', key: 'time' },
+    { label: 'Date', key: 'date' }
+];
 
 function App() {
-  // --- AUTH STATE (NEW) ---
-  const [session, setSession] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  // --- AUTH HOOK ---
+  const { session, loading: authLoading, signOut } = useAuth();
+
+  // --- STATE ---
   const [isSaving, setIsSaving] = useState(false);
-
-  // --- APP STATE ---
   const [files, setFiles] = useState<File[]>([]);
-  const [paperData, setPaperData] = useState<ExamPaperData | null>(() => loadState('examGen_data', null));
-  const [status, setStatus] = useState<AppState>(() => {
-    const hasData = loadState('examGen_data', null) !== null;
-    return hasData ? AppState.READY : AppState.IDLE;
-  });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [config, setConfig] = useState<SchoolConfig>(() => loadState('examGenConfig', DEFAULT_CONFIG));
 
-  // --- 1. STRICT AUTH CHECK ON LOAD ---
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setAuthLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setAuthLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // --- PERSISTENCE ---
-  useEffect(() => { localStorage.setItem('examGenConfig', JSON.stringify(config)); }, [config]);
+  // --- PERSISTENCE HOOKS ---
+  const [paperData, setPaperData, removePaperData] = useLocalStorage<ExamPaperData | null>('examGen_data', null);
+  const [config, setConfig] = useLocalStorage<SchoolConfig>('examGenConfig', DEFAULT_CONFIG);
   
+  // Derived state for app status - Initialized based on paperData existence
+  const [status, setStatus] = useState<AppState>(() => {
+    return paperData ? AppState.READY : AppState.IDLE;
+  });
+
+  // Sync status if paperData is removed externally (e.g. another tab or removePaperData)
   useEffect(() => {
-      if (paperData) {
-          localStorage.setItem('examGen_data', JSON.stringify(paperData));
-      } else {
-          localStorage.removeItem('examGen_data');
-      }
-  }, [paperData]);
+    if (!paperData && status === AppState.READY) {
+      setStatus(AppState.IDLE);
+    } else if (paperData && status === AppState.IDLE) {
+      // Optional: Auto-recover state if data appears?
+      // Safe to assume if data exists we might want to be in READY,
+      // but let's be conservative and only force IDLE if data is gone.
+      setStatus(AppState.READY);
+    }
+  }, [paperData, status]);
 
   // --- HANDLERS ---
-
-  const handleLogout = async () => {
-      await supabase.auth.signOut();
-      setPaperData(null); // Optional: Clear data on logout for security
+  const resetApp = () => {
+      removePaperData();
       setFiles([]);
       setStatus(AppState.IDLE);
   };
 
-  // Handler to save work to Supabase Database (Cloud Save)
+  const handleLogout = async () => {
+      await signOut();
+      resetApp();
+  };
+
   const handleSaveToCloud = async () => {
       if (!session || !paperData) return;
       setIsSaving(true);
@@ -104,13 +100,9 @@ function App() {
 
   const handleReset = () => {
     if (window.confirm("Start a new paper? This will clear all content.")) {
-        setPaperData(null);
-        setFiles([]);
-        setStatus(AppState.IDLE);
-        localStorage.removeItem('examGen_data');
+        resetApp();
     }
   };
-
 
   const handleAnalyze = async () => {
     if (files.length === 0) return;
@@ -156,27 +148,30 @@ function App() {
         }
         const reader = new FileReader();
         reader.onloadend = () => {
-            setConfig(prev => ({ ...prev, logoUrl: reader.result as string }));
+            setConfig((prev: SchoolConfig) => ({ ...prev, logoUrl: reader.result as string }));
         };
         reader.readAsDataURL(file);
     }
   };
 
   const removeLogo = () => {
-    setConfig(prev => ({ ...prev, logoUrl: null }));
+    setConfig((prev: SchoolConfig) => ({ ...prev, logoUrl: null }));
   };
 
-  // --- 2. CONDITIONAL RENDERING FOR SECURITY ---
+  // --- RENDERING ---
   
   if (authLoading) {
-      return <div className="h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
+      return (
+        <div className="h-screen flex items-center justify-center bg-gray-50">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        </div>
+      );
   }
 
   if (!session) {
-      return <Auth />; // Blocks everything else until logged in
+      return <Auth />;
   }
 
-  // --- 3. MAIN PROTECTED APP ---
   return (
     <div className="min-h-screen bg-gray-100 font-sans text-gray-900 pb-20 print:pb-0 print:bg-white print:h-auto print:overflow-visible">
       {/* Header */}
@@ -190,7 +185,6 @@ function App() {
           </div>
           
           <div className="flex items-center gap-2">
-             {/* LOGOUT BUTTON */}
              <button 
                 onClick={handleLogout}
                 className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg mr-2"
@@ -210,7 +204,6 @@ function App() {
 
             {status === AppState.READY && (
               <>
-                {/* SAVE TO CLOUD */}
                 <button 
                     onClick={handleSaveToCloud}
                     disabled={isSaving}
@@ -229,7 +222,6 @@ function App() {
                     <Download className="w-4 h-4" />
                     <span className="hidden sm:inline">JSON</span>
                 </button>
-                
                 
                 <button 
                     onClick={handlePrint}
@@ -279,21 +271,13 @@ function App() {
                 </div>
 
                 {/* Input Fields */}
-                {[
-                    { label: 'School Name', key: 'schoolName' },
-                    { label: 'Exam Title', key: 'examName' },
-                    { label: 'Class', key: 'className' },
-                    { label: 'Subject', key: 'subject' },
-                    { label: 'Marks', key: 'marks' },
-                    { label: 'Time', key: 'time' },
-                    { label: 'Date', key: 'date' }
-                ].map((field) => (
+                {CONFIG_FIELDS.map((field) => (
                     <div key={field.key}>
                       <label className="block text-xs font-medium text-gray-700 mb-1">{field.label}</label>
                       <input 
                         type="text" 
-                        value={(config as any)[field.key]}
-                        onChange={(e) => setConfig({...config, [field.key]: e.target.value})}
+                        value={config[field.key] || ''}
+                        onChange={(e) => setConfig((prev: SchoolConfig) => ({...prev, [field.key]: e.target.value}))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
                       />
                     </div>
@@ -326,7 +310,6 @@ function App() {
                     <p>Upload photos. AI will structure grids, visual MCQs, and matchings automatically.</p>
                 </div>
             ) : (
-                // Passing the new paperData to the renderer
                 <PaperRenderer config={config} data={paperData} onUpdateData={setPaperData} />
             )}
           </div>
