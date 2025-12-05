@@ -3,13 +3,18 @@
 @tailwind utilities;
 
 @media print {
-  /* 
-     1. GLOBAL PAGE MARGINS (The Fix)
-     This ensures EVERY page (1, 2, 3...) has exactly 15mm gap 
-     at the Top, Bottom, Left, and Right.
-  */
+  /* 1. FORCE EXACT COLORS & DIMENSIONS */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* 2. PAGE SETUP */
   @page {
-    margin: 15mm; 
+    margin: 10mm;
     size: A4;
   }
 
@@ -22,63 +27,73 @@
     overflow: visible !important;
   }
 
-  /* Hide UI */
+  /* 3. HIDE UI ELEMENTS */
   body * {
     visibility: hidden;
+    height: 0;
   }
 
-  /* Show Paper */
+  /* 4. SHOW PAPER CONTENT */
   #exam-paper-content, 
   #exam-paper-content * {
     visibility: visible;
+    height: auto;
   }
 
-  /* 
-     2. PAPER CONTAINER RESET
-     Since @page handles the margins now, we REMOVE padding from the div.
-     If we keep padding here, Page 1 would have double space (30mm).
-  */
   #exam-paper-content {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
-    
-    /* Width is 100% of the PRINTABLE AREA (A4 minus margins) */
-    width: 100% !important; 
-    
+    width: 100% !important;
     margin: 0 !important;
-    padding: 0 !important; /* Removed padding because @page does it now */
-    
-    height: auto !important;
+    padding: 0 !important; 
     display: block !important;
-    background: white;
-    box-shadow: none !important;
-    border: none !important;
   }
 
-  /* Fix Images */
+  /* 5. IMAGE STABILITY */
   img, svg {
-    display: block !important;
-    max-width: 100% !important;
+    /* Images should NEVER split */
+    break-inside: avoid;
+    display: block;
+    max-width: 100%;
+    object-fit: contain; 
+  }
+
+  /* 6. LAYOUT FLOW - THE FIX */
+  
+  /* Allow the Flow Root to break naturally */
+  .flow-root {
+    break-inside: auto;
+  }
+
+  /* CRITICAL FIX: Allow questions to split across pages to save space */
+  .question-block {
+     break-inside: auto; 
+     page-break-inside: auto;
+     display: block; /* Ensure it behaves like a block for breaking */
+  }
+
+  /* But keep specific "Answer" lines together if possible, or small chunks */
+  .keep-together {
     break-inside: avoid;
   }
 
-  /* Layout Flow */
-  .break-inside-avoid {
-    break-inside: auto !important;
-  }
-
-  h3 {
-    break-after: avoid;
-    page-break-after: avoid;
+  /* 7. TABLE HANDLING */
+  table {
+    /* Allow tables to split if they are huge */
+    break-inside: auto;
+    width: 100%;
   }
   
+  /* Ensure a specific ROW doesn't get sliced in half */
   tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  #root {
-    display: block !important;
+  /* Headings shouldn't be the last thing on a page */
+  h3, h4, .section-header {
+    break-after: avoid;
   }
 }
+
