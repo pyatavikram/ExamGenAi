@@ -3,8 +3,12 @@ import { ExamPaperData, Question, ContentPart, GridConfig, SchoolConfig } from '
 import { 
     Image as ImageIcon, GripVertical, RotateCcw, MousePointerClick, 
     LayoutList, LayoutGrid, Grid3X3, Plus, Minus, Hash,
-    Maximize2, ArrowLeftRight, ArrowUpDown, ChevronLeft, ChevronRight
+    Maximize2, ArrowLeftRight, ArrowUpDown, ChevronLeft, ChevronRight,
+    PenTool
 } from 'lucide-react';
+
+// IMPORT YOUR EDITOR
+import { DiagramEditor } from '@/lib/DiagramEditor';
 
 interface PaperRendererProps {
   config: SchoolConfig;
@@ -98,6 +102,15 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
   const [tableRowHeights, setTableRowHeights] = useState<Record<string, Record<number, number>>>({});
   const [tableDensities, setTableDensities] = useState<Record<string, DensityMode>>({});
 
+  // NEW: State for the Diagram Editor Modal
+  const [editingDiagram, setEditingDiagram] = useState<{
+      sIdx: number;
+      qIdx: number;
+      pIdx: number; // -1 for reference
+      content: string;
+      isReference: boolean;
+  } | null>(null);
+
   if (!data || !data.sections) return null;
 
   // --- SIZE HELPERS ---
@@ -147,7 +160,6 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
           return "w-10 h-8";
       }
       if (type === 'table') {
-          // FIX: Changed 'w-auto' to 'w-[50%]' so S is actually small.
           if (size === 'sm') return "w-[50%]"; 
           if (size === 'md') return "w-[75%]"; 
           return "w-full"; 
@@ -228,6 +240,30 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
       onUpdateData(finalData);
   };
 
+  // --- DIAGRAM EDITOR LOGIC ---
+  const handleOpenEditor = (sIdx: number, qIdx: number, pIdx: number, isReference: boolean, content: string, type: 'image' | 'svg', uniqueKey: string) => {
+      let finalContent = content;
+      setEditingDiagram({ sIdx, qIdx, pIdx, isReference, content: finalContent });
+  };
+
+  const handleSaveDiagram = (newContent: string) => {
+      if (!editingDiagram) return;
+      const { sIdx, qIdx, pIdx, isReference } = editingDiagram;
+      const newData = JSON.parse(JSON.stringify(data));
+      
+      // Update data based on where it came from
+      if (isReference) {
+          newData.sections[sIdx].questions[qIdx].content_parts[pIdx].reference.value = newContent;
+          newData.sections[sIdx].questions[qIdx].content_parts[pIdx].reference.type = 'svg'; 
+      } else {
+          newData.sections[sIdx].questions[qIdx].content_parts[pIdx].value = newContent;
+          newData.sections[sIdx].questions[qIdx].content_parts[pIdx].type = 'svg'; 
+      }
+      
+      onUpdateData(newData);
+      setEditingDiagram(null);
+  };
+
   // --- IMAGE HELPERS ---
   const getImageState = (key: string) => imageStates[key] || { isDrawn: false, seed: Math.floor(Math.random() * 1000) };
   const handleDraw = (key: string) => setImageStates(prev => ({ ...prev, [key]: { isDrawn: true, seed: prev[key]?.seed || Math.floor(Math.random() * 1000) } }));
@@ -236,11 +272,14 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
   const toggleLayout = (sIdx: number, mode: LayoutMode) => setSectionLayouts(prev => ({ ...prev, [sIdx]: mode }));
 
   // --- RENDERERS ---
-  const renderReference = (ref: { type: 'image' | 'svg', value: string }, uniqueKey: string) => {
+  
+  // 1. Render Reference (Float Left) with Edit Button
+  const renderReference = (ref: { type: 'image' | 'svg', value: string }, uniqueKey: string, sIdx: number, qIdx: number, pIdx: number) => {
     const sizeStyle = getSizeClass(uniqueKey, 'reference');
     let content = null;
+    
     if (ref.type === 'svg') {
-         content = <div className="w-full" dangerouslySetInnerHTML={{ __html: ref.value }} />;
+         content = <div className="w-full leading-none block line-height-[0]" dangerouslySetInnerHTML={{ __html: ref.value }} />;
     } else {
         const state = getImageState(uniqueKey);
         content = state.isDrawn ? (
@@ -260,8 +299,19 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
     }
     return (
         <div className="float-left border border-gray-100 p-2 rounded bg-white mr-4 mb-2 break-inside-avoid relative group/ref" style={sizeStyle}>
-             <div className="absolute top-1 right-1 z-10 opacity-0 group-hover/ref:opacity-100 transition-opacity no-print">
-                <button onClick={() => toggleSize(uniqueKey)} className="bg-white/90 text-gray-600 p-1 rounded-full shadow border border-gray-200 hover:text-blue-600" title="Resize Reference"><Maximize2 className="w-3 h-3" /></button>
+             {/* EDIT + RESIZE CONTROLS */}
+             <div className="absolute top-1 right-1 z-10 opacity-0 group-hover/ref:opacity-100 transition-opacity no-print flex gap-1">
+                {/* EDIT BUTTON - ONLY FOR SVG */}
+                {ref.type === 'svg' && (
+                    <button 
+                        onClick={() => handleOpenEditor(sIdx, qIdx, pIdx, true, ref.value, ref.type, uniqueKey)} 
+                        className="bg-white/90 text-blue-600 p-1 rounded-full shadow border border-blue-200 hover:text-blue-800" 
+                        title="Edit Diagram"
+                    >
+                        <PenTool className="w-3 h-3" />
+                    </button>
+                )}
+                <button onClick={() => toggleSize(uniqueKey)} className="bg-white/90 text-gray-600 p-1 rounded-full shadow border border-gray-200 hover:text-blue-600" title="Resize"><Maximize2 className="w-3 h-3" /></button>
             </div>
             {content}
         </div>
@@ -284,12 +334,14 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
         }
     }
     
+    // 2. Render Inline Image
     else if (part.type === 'image') {
         const state = getImageState(uniqueKey);
         const boxStyle = getSizeClass(uniqueKey, 'image');
         contentElement = (
             <div className="inline-flex flex-col items-center m-2 align-middle group/image relative break-inside-avoid">
-                <div className="absolute top-1 right-1 z-10 opacity-0 group-hover/image:opacity-100 transition-opacity no-print">
+                <div className="absolute top-1 right-1 z-10 opacity-0 group-hover/image:opacity-100 transition-opacity no-print flex gap-1">
+                    {/* ONLY RESIZE BUTTON FOR IMAGES - NO EDIT */}
                     <button onClick={() => toggleSize(uniqueKey)} className="bg-white/90 text-gray-600 p-1 rounded-full shadow border border-gray-200 hover:text-blue-600" title="Toggle Size"><Maximize2 className="w-3 h-3" /></button>
                 </div>
                 {state.isDrawn ? (
@@ -382,14 +434,28 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
         );
     }
     
+    // 3. Render Inline SVG with Edit Button
     else if (part.type === 'svg') {
-        contentElement = <span className="inline-block align-middle my-2" dangerouslySetInnerHTML={{ __html: part.value }} />;
+        contentElement = (
+            <div className="inline-block align-middle my-2 relative group/svg leading-none">
+                <div className="absolute -top-3 right-0 opacity-0 group-hover/svg:opacity-100 transition-opacity no-print z-10 flex gap-1">
+                    <button 
+                        onClick={() => handleOpenEditor(sIdx, qIdx, pIdx, false, part.value, 'svg', uniqueKey)}
+                        className="bg-white/90 text-blue-600 p-1 rounded-full shadow border border-blue-200 hover:text-blue-800" 
+                        title="Edit SVG"
+                    >
+                        <PenTool className="w-3 h-3" />
+                    </button>
+                </div>
+                <span className="block leading-none" dangerouslySetInnerHTML={{ __html: part.value }} />
+            </div>
+        );
     }
 
     if (part.reference) {
         return (
             <div className="flow-root w-full">
-                {renderReference(part.reference, `${uniqueKey}-ref`)}
+                {renderReference(part.reference, `${uniqueKey}-ref`, sIdx, qIdx, pIdx)}
                 <div className="leading-relaxed">
                     {contentElement}
                 </div>
@@ -506,11 +572,7 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
                         <div className="w-[45%] flex items-center justify-start gap-3 pr-2">
                             <span className="font-bold min-w-[20px] text-sm">{q.question_number}.</span>
                             <div className="flex-1">
-                                {q.match_pair?.left && q.match_pair.left.type === 'text' ? (
-                                    <InlineEdit value={q.match_pair.left.value} onSave={(val) => updateContentPart(sIdx, qIdx, 0, val, true, false)} className="text-sm"/>
-                                ) : (
-                                    q.match_pair?.left && renderContentPart(q.match_pair.left, `s${sIdx}-q${qIdx}-left`, sIdx, qIdx, -1)
-                                )}
+                                {q.match_pair?.left && renderContentPart(q.match_pair.left, `s${sIdx}-q${qIdx}-left`, sIdx, qIdx, -1)}
                             </div>
                         </div>
                         <div className="w-[10%] flex justify-center items-center">
@@ -518,11 +580,7 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
                         </div>
                         <div className="w-[45%] flex items-center justify-start gap-3 pl-4">
                             <div className="flex-1">
-                                 {q.match_pair?.right && q.match_pair.right.type === 'text' ? (
-                                    <InlineEdit value={q.match_pair.right.value} onSave={(val) => updateContentPart(sIdx, qIdx, 0, val, false, true)} className="text-sm"/>
-                                ) : (
-                                    q.match_pair?.right && renderContentPart(q.match_pair.right, `s${sIdx}-q${qIdx}-right`, sIdx, qIdx, -1)
-                                )}
+                                {q.match_pair?.right && renderContentPart(q.match_pair.right, `s${sIdx}-q${qIdx}-right`, sIdx, qIdx, -1)}
                             </div>
                         </div>
                     </div>
@@ -535,12 +593,14 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
   return (
     <div id="exam-paper-content" className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-2xl print:shadow-none min-h-[297mm] p-[10mm] text-black font-serif leading-normal relative">
       <div className="border-b-2 border-black pb-4 mb-6 relative">
+         {/* ... Controls ... */}
          <div className="absolute top-0 right-0 flex gap-2 no-print transform -translate-y-full pb-2">
              <button onClick={handleNumberingSwitch} className="flex items-center gap-2 bg-gray-800 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow hover:bg-gray-700 transition-colors">
                 <Hash className="w-3 h-3" />
                 {numberingMode === 'continuous' ? 'Continuous (1-50)' : 'Per Section (1-10, 1-10)'}
              </button>
          </div>
+         {/* ... Header ... */}
          <div className="flex items-center justify-between gap-4 mb-2">
             <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center overflow-hidden">
                  {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" /> : <div className="w-full h-full border border-dashed border-gray-300 rounded flex items-center justify-center text-[10px] text-gray-300 no-print">LOGO</div>}
@@ -615,6 +675,15 @@ export const PaperRenderer: React.FC<PaperRendererProps> = ({ config, data, onUp
         })}
       </div>
       <div className="w-full text-center text-[10px] text-gray-400 mt-12 pb-4 print:text-black">Generated by ExamGen AI</div>
+      
+      {/* RENDER THE EDITOR MODAL IF ACTIVE */}
+      {editingDiagram && (
+          <DiagramEditor 
+              initialSvgContent={editingDiagram.content}
+              onSave={handleSaveDiagram}
+              onClose={() => setEditingDiagram(null)}
+          />
+      )}
     </div>
   );
 };
