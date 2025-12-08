@@ -14,7 +14,7 @@ export interface UsageData {
   created_at: string;
 }
 
-const TRIAL_LIMIT = 3;
+const TRIAL_LIMIT = 10;
 
 /**
  * Check if user has remaining trials and atomically increment the count.
