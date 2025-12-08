@@ -32,7 +32,7 @@ export class GeminiService {
       const imageParts = await Promise.all(files.map(fileToGenerativePart));
 
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-pro', // Flash is better for large context/JSON tasks
+        model: 'gemini-2.5-flash', // Flash is better for large context/JSON tasks
         contents: {
             parts: [
                 ...imageParts,
