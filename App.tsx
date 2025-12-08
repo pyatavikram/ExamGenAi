@@ -429,7 +429,7 @@ function App() {
                 {/* Trial Limit Display */}
                 {remainingTrials !== null && (
                   <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-                    <p className="font-medium">Trials Remaining: <span className="font-bold text-lg">{remainingTrials}/3</span></p>
+                    <p className="font-medium">Trials Remaining: <span className="font-bold text-lg">{remainingTrials}/10</span></p>
                   </div>
                 )}
 
