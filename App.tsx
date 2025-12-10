@@ -215,11 +215,14 @@ function App() {
     const jsonString = JSON.stringify(paperData, null, 2);
     const element = document.createElement("a");
     const file = new Blob([jsonString], { type: 'application/json' });
-    element.href = URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
+    element.href = url;
     element.download = "exam-paper.json";
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    // Clean up to prevent memory leak
+    URL.revokeObjectURL(url);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
