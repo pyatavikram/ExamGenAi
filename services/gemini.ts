@@ -1,7 +1,10 @@
-// Secure Gemini Service - Calls local API proxy
+// Secure Gemini Service - Calls API endpoint
 // API key is kept server-side only
 
-const API_URL = '/api/analyze';
+// Use Netlify function directly in production, /api/analyze for local dev
+const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  ? '/.netlify/functions/analyze'
+  : '/api/analyze';
 const REQUEST_TIMEOUT_MS = 120000; // 2 minutes
 
 /**
