@@ -1,18 +1,13 @@
-import { GoogleGenAI } from "@google/genai";
-import { SYSTEM_PROMPT } from "../constants";
-
 // Helper to convert file to base64
-export const fileToGenerativePart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
+export const fileToGenerativePart = async (file: File): Promise<{ data: string; mimeType: string }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
       const base64Data = base64String.split(',')[1];
       resolve({
-        inlineData: {
-          data: base64Data,
-          mimeType: file.type,
-        },
+        data: base64Data,
+        mimeType: file.type,
       });
     };
     reader.onerror = reject;
@@ -21,33 +16,35 @@ export const fileToGenerativePart = async (file: File): Promise<{ inlineData: { 
 };
 
 export class GeminiService {
-  private ai: GoogleGenAI;
+  private apiUrl: string;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
+    // Use local API proxy instead of direct Gemini calls
+    this.apiUrl = '/api/analyze';
   }
 
   async analyzeExamSheet(files: File[]): Promise<string> {
     try {
-      const imageParts = await Promise.all(files.map(fileToGenerativePart));
+      // Convert files to base64
+      const images = await Promise.all(files.map(fileToGenerativePart));
 
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-flash-latest', // Flash is better for large context/JSON tasks
-        contents: {
-            parts: [
-                ...imageParts,
-                // UPDATED: Explicitly ask for JSON matching our schema
-                { text: "Analyze these handwritten exam sheets. Extract all questions, sections, and visual elements. Output the result strictly as a raw JSON object following the defined schema. Do not use Markdown formatting." },
-            ]
+      // Call our secure backend API
+      const response = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          temperature: 0.0, 
-          responseMimeType: "application/json" 
-        },
+        body: JSON.stringify({ images }),
       });
-      console.log("AI Response:", response.text);
-      return response.text || "";
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'API request failed');
+      }
+
+      const data = await response.json();
+      console.log("AI Response:", data.result);
+      return data.result || "";
     } catch (error) {
       console.error("Error analyzing exam sheet:", error);
       throw new Error("Failed to analyze exam sheet. Please try again.");
@@ -70,3 +67,4 @@ export class GeminiService {
 }
 
 export const geminiService = new GeminiService();
+
