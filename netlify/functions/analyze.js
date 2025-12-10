@@ -1,4 +1,5 @@
-import { GoogleGenAI } from '@google/genai';
+// Netlify Serverless Function: /api/analyze
+// Using dynamic import for ESM module
 
 // Full system prompt for OCR
 const SYSTEM_PROMPT = `
@@ -62,8 +63,8 @@ function validateImages(images) {
     return { valid: true };
 }
 
-// Main handler - Netlify Functions format
-export async function handler(event, context) {
+// Main handler
+export const handler = async (event, context) => {
     // CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -87,6 +88,9 @@ export async function handler(event, context) {
     }
 
     try {
+        // Dynamic import for ESM module
+        const { GoogleGenAI } = await import('@google/genai');
+
         // Parse request body
         let body;
         try {
@@ -114,7 +118,7 @@ export async function handler(event, context) {
         // Check API key
         const apiKey = process.env.VITE_GEMINI_API_KEY;
         if (!apiKey) {
-            console.error('ERROR: VITE_GEMINI_API_KEY environment variable not set');
+            console.error('ERROR: VITE_GEMINI_API_KEY not set');
             return {
                 statusCode: 500,
                 headers,
@@ -122,31 +126,23 @@ export async function handler(event, context) {
             };
         }
 
-        // Initialize Gemini client
+        // Initialize Gemini
         const ai = new GoogleGenAI({ apiKey });
 
-        // Build image parts for Gemini
+        // Build image parts
         const imageParts = images.map(img => ({
-            inlineData: {
-                data: img.data,
-                mimeType: img.mimeType
-            }
+            inlineData: { data: img.data, mimeType: img.mimeType }
         }));
 
         const userPrompt = prompt ||
-            "Analyze these handwritten exam sheets. Extract all questions, sections, and visual elements. Output the result strictly as a raw JSON object following the defined schema. Do not use Markdown formatting.";
+            "Analyze these handwritten exam sheets. Extract all questions, sections, and visual elements. Output strictly as JSON.";
 
         console.log(`[analyze] Processing ${images.length} image(s)...`);
 
         // Call Gemini API
         const response = await ai.models.generateContent({
             model: 'gemini-1.5-flash',
-            contents: {
-                parts: [
-                    ...imageParts,
-                    { text: userPrompt }
-                ]
-            },
+            contents: { parts: [...imageParts, { text: userPrompt }] },
             config: {
                 systemInstruction: SYSTEM_PROMPT,
                 temperature: 0.0,
@@ -154,27 +150,20 @@ export async function handler(event, context) {
             }
         });
 
-        console.log('[analyze] Gemini response received successfully');
+        console.log('[analyze] Success');
 
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({
-                success: true,
-                result: response.text || ''
-            })
+            body: JSON.stringify({ success: true, result: response.text || '' })
         };
 
     } catch (error) {
         console.error('[analyze] Error:', error.message);
-        console.error('[analyze] Stack:', error.stack);
-
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({
-                error: 'AI analysis failed. Please try again.'
-            })
+            body: JSON.stringify({ error: 'AI analysis failed. Please try again.' })
         };
     }
-}
+};

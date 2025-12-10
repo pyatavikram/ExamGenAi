@@ -1,0 +1,7 @@
+{
+    "name": "netlify-functions",
+    "type": "module",
+    "dependencies": {
+        "@google/genai": "^1.32.0"
+    }
+}
