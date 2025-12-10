@@ -1,25 +1,26 @@
-# Netlify Configuration
+# Netlify Configuration for ExamGenAI
 [build]
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
 [functions]
-  # Include external modules
-  external_node_modules = ["@google/genai"]
+  node_bundler = "esbuild"
 
-# Redirect API calls to the serverless function
+# API redirects - MUST be before SPA fallback
 [[redirects]]
   from = "/api/analyze"
   to = "/.netlify/functions/analyze"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/health"
   to = "/.netlify/functions/health"
   status = 200
+  force = true
 
-# SPA fallback - must be last
+# SPA fallback - MUST be last
 [[redirects]]
   from = "/*"
   to = "/index.html"
