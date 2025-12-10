@@ -5,8 +5,8 @@
   functions = "netlify/functions"
 
 [functions]
-  # Use ESM for functions
-  node_bundler = "esbuild"
+  # Include external modules
+  external_node_modules = ["@google/genai"]
 
 # Redirect API calls to the serverless function
 [[redirects]]
